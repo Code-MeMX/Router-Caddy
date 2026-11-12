@@ -239,6 +239,14 @@ Desde el panel en `http://localhost:3000` puedes registrar tantas URLs como nece
 - **`GET /api/logs?limit=30`**: Devuelve los últimos registros de validación.
 - **`DELETE /api/logs`**: Limpia la tabla de historial.
 
+### 4. Healthcheck del Contenedor
+
+- **Rutas**: `GET /api/health` y `GET /health`
+- **Descripción**: Verifica que el servidor HTTP y la conexión a PostgreSQL estén operativos (`SELECT 1`).
+- **Respuestas**:
+  - `200 OK`: `{"status": "ok", "database": "connected", "latency_ms": 2, "timestamp": "..."}`
+  - `503 Service Unavailable`: `{"status": "error", "database": "disconnected", "error": "...", "timestamp": "..."}`
+
 ---
 
 ## Esquema de Base de Datos
