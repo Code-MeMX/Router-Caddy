@@ -1,3 +1,5 @@
+name: router-caddy
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -26,7 +28,6 @@ services:
 
   router:
     image: ghcr.io/code-memx/router-caddy:latest
-    build: .
     container_name: router-caddy
     restart: unless-stopped
     ports:
