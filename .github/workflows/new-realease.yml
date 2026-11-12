@@ -32,6 +32,7 @@ jobs:
     name: Calcular y etiquetar nueva versión SemVer
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !startsWith(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: write
     outputs:
@@ -41,7 +42,7 @@ jobs:
 
     steps:
       - name: Clonar repositorio completo con tags
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -106,6 +107,7 @@ jobs:
     name: Construir y publicar imagen Docker
     needs: versionar
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
       packages: write
@@ -164,6 +166,7 @@ jobs:
       - versionar
       - construir-y-publicar
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: write
 
