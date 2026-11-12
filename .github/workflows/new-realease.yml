@@ -87,8 +87,7 @@ jobs:
             TAG_NAME="${GITHUB_REF#refs/tags/}"
           else
             PKG_VER=$(node -p "require('./package.json').version")
-            SHORT_SHA=$(git rev-parse --short HEAD)
-            TAG_NAME="v${PKG_VER}-${SHORT_SHA}"
+            TAG_NAME="v${PKG_VER}"
           fi
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
           echo "image_lower=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
