@@ -17,16 +17,19 @@
 
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import pkg from "../../../../package.json";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const start = Date.now();
+  const version = process.env.APP_VERSION || pkg.version;
   try {
     await sql`SELECT 1`;
     return NextResponse.json(
       {
         status: "ok",
+        version,
         database: "connected",
         latency_ms: Date.now() - start,
         timestamp: new Date().toISOString(),
@@ -40,6 +43,7 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "error",
+        version,
         database: "disconnected",
         error: err instanceof Error ? err.message : "Database check failed",
         timestamp: new Date().toISOString(),

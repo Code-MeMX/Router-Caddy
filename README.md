@@ -242,10 +242,10 @@ Desde el panel en `http://localhost:3000` puedes registrar tantas URLs como nece
 ### 4. Healthcheck del Contenedor
 
 - **Rutas**: `GET /api/health` y `GET /health`
-- **Descripción**: Verifica que el servidor HTTP y la conexión a PostgreSQL estén operativos (`SELECT 1`).
+- **Descripción**: Verifica que el servidor HTTP y la conexión a PostgreSQL estén operativos (`SELECT 1`) y reporta la versión activa.
 - **Respuestas**:
-  - `200 OK`: `{"status": "ok", "database": "connected", "latency_ms": 2, "timestamp": "..."}`
-  - `503 Service Unavailable`: `{"status": "error", "database": "disconnected", "error": "...", "timestamp": "..."}`
+  - `200 OK`: `{"status": "ok", "version": "0.1.1", "database": "connected", "latency_ms": 2, "timestamp": "..."}`
+  - `503 Service Unavailable`: `{"status": "error", "version": "0.1.1", "database": "disconnected", "error": "...", "timestamp": "..."}`
 
 ---
 
@@ -255,6 +255,22 @@ El servicio crea y mantiene automáticamente dos tablas en PostgreSQL:
 
 - **`validation_endpoints`**: Almacena las URLs configuradas (`id`, `name`, `url_template`, `http_method`, `expected_status`, `expected_body_contains`, `expected_json_key`, `expected_json_value`, `timeout_ms`, `priority`, `enabled`, `created_at`).
 - **`validation_logs`**: Registra cada consulta realizada por Caddy (`id`, `domain`, `allowed`, `matched_endpoint_id`, `matched_endpoint_name`, `response_status`, `duration_ms`, `details`, `created_at`).
+
+---
+
+## CI/CD y Publicación Automática
+
+El flujo de GitHub Actions (`.github/workflows/new-realease.yml`) implementa **Versionado Semántico (SemVer) automático**:
+
+1. **Detección por Conventional Commits**:
+   - `BREAKING CHANGE`, `feat!:` o `[major]` → incrementa versión **Major** (`1.0.0`).
+   - `feat:` o `[minor]` → incrementa versión **Minor** (`0.2.0`).
+   - `fix:`, `perf:`, `refactor:` u otros → incrementa versión **Patch** (`0.1.1`).
+2. **Actualización y Etiquetado**: Actualiza `package.json`, crea el commit `chore(release): vX.Y.Z [skip ci]` y publica el tag Git `vX.Y.Z`.
+3. **Publicación Multi-Arquitectura (`linux/amd64`, `linux/arm64`) en GHCR**: Etiqueta la imagen con `:latest`, `:vX.Y.Z`, `:X.Y.Z`, `:X.Y` y `:X`, y crea el **GitHub Release** con el changelog automático.
+4. **Scripts locales**:
+   - `bun run version:auto` (detecta según commits desde el último tag)
+   - `bun run version:patch` / `bun run version:minor` / `bun run version:major`
 
 ---
 

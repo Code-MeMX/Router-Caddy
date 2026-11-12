@@ -9,7 +9,11 @@
     "build": "bun --bun next build",
     "start": "bun --bun next start",
     "lint": "next lint",
-    "db:migrate": "bun run src/db/migrate.ts"
+    "db:migrate": "bun run src/db/migrate.ts",
+    "version:auto": "bun run scripts/version.ts auto",
+    "version:patch": "bun run scripts/version.ts patch",
+    "version:minor": "bun run scripts/version.ts minor",
+    "version:major": "bun run scripts/version.ts major"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

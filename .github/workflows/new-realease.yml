@@ -1,4 +1,4 @@
-name: Construir, Publicar en GHCR y Crear Release
+name: Versionar, Construir en GHCR y Crear Release
 
 on:
   push:
@@ -11,27 +11,112 @@ on:
       - "package.json"
       - "bun.lock"
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Tipo de incremento SemVer (auto detecta por Conventional Commits)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  construir-y-publicar:
-    name: Construir y publicar imagen Docker
+  versionar:
+    name: Calcular y etiquetar nueva versión SemVer
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !startsWith(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
     outputs:
-      digest: ${{ steps.build.outputs.digest }}
-      version: ${{ steps.meta.outputs.version }}
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+      changelog: ${{ steps.bump.outputs.changelog }}
 
     steps:
-      - name: Clonar repositorio
+      - name: Clonar repositorio completo con tags
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Instalar Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Calcular siguiente versión y actualizar package.json
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          LAST_TAG=$(git describe --tags --abbrev=0 --match "v[0-9]*" 2>/dev/null || echo "")
+          BUMP_MODE="${{ inputs.bump || 'auto' }}"
+
+          NEXT_VER=$(bun run scripts/version.ts "$BUMP_MODE" --dry-run)
+          TAG_NAME="v${NEXT_VER}"
+
+          # Si el tag ya existe en remoto, incrementar patch hasta encontrar uno libre
+          while git rev-parse "$TAG_NAME" >/dev/null 2>&1; do
+            IFS='.' read -r MAJ MIN PAT <<< "$NEXT_VER"
+            NEXT_VER="${MAJ}.${MIN}.$((PAT + 1))"
+            TAG_NAME="v${NEXT_VER}"
+          done
+
+          # Actualizar package.json sin crear tag local aún
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${NEXT_VER}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          # Generar resumen de cambios desde el último tag
+          if [[ -n "$LAST_TAG" ]]; then
+            CHANGELOG=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s (\`%h\`)" --no-merges)
+          else
+            CHANGELOG=$(git log -n 15 --pretty=format:"- %s (\`%h\`)" --no-merges)
+          fi
+
+          git add package.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): ${TAG_NAME} [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+          git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
+          git push origin "${TAG_NAME}"
+
+          echo "version=${NEXT_VER}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          {
+            echo "changelog<<EOF"
+            echo "${CHANGELOG}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  construir-y-publicar:
+    name: Construir y publicar imagen Docker
+    needs: versionar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Clonar repositorio en el tag de la versión
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.versionar.outputs.tag }}
 
       - name: Configurar QEMU (multi-arquitectura)
         uses: docker/setup-qemu-action@v3
@@ -46,16 +131,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extraer metadatos de Docker (etiquetas y versiones)
+      - name: Extraer metadatos y etiquetas SemVer de Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ needs.versionar.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.versionar.outputs.tag }}
+            type=semver,pattern={{major}},value=${{ needs.versionar.outputs.tag }}
+            type=raw,value=${{ needs.versionar.outputs.tag }}
             type=sha
 
       - name: Construir y publicar imagen Docker en GHCR
@@ -65,6 +151,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            APP_VERSION=${{ needs.versionar.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -72,40 +160,41 @@ jobs:
 
   crear-release:
     name: Crear lanzamiento (Release) en GitHub
-    needs: construir-y-publicar
+    needs:
+      - versionar
+      - construir-y-publicar
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Determinar versión del release
-        id: tag
+      - name: Normalizar nombre de imagen
+        id: image
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-          else
-            PKG_VER=$(node -p "require('./package.json').version")
-            TAG_NAME="v${PKG_VER}"
-          fi
-          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "image_lower=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          echo "lower=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Publicar Release en GitHub
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag_name }}
-          name: Versión ${{ steps.tag.outputs.tag_name }}
+          tag_name: ${{ needs.versionar.outputs.tag }}
+          name: Versión ${{ needs.versionar.outputs.tag }}
           generate_release_notes: true
           body: |
-            ### Imagen Docker publicada en GitHub Container Registry (GHCR)
+            ### Cambios en ${{ needs.versionar.outputs.tag }}
+
+            ${{ needs.versionar.outputs.changelog }}
+
+            ---
+
+            ### Imagen Docker en GitHub Container Registry (GHCR)
 
             ```bash
-            docker pull ${{ steps.tag.outputs.image_lower }}:latest
+            # Versión específica
+            docker pull ${{ steps.image.outputs.lower }}:${{ needs.versionar.outputs.version }}
+            docker pull ${{ steps.image.outputs.lower }}:${{ needs.versionar.outputs.tag }}
+
+            # Última versión estable
+            docker pull ${{ steps.image.outputs.lower }}:latest
             ```
 
             **Digest:** `${{ needs.construir-y-publicar.outputs.digest }}`
