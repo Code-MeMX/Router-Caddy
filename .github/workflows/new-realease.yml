@@ -7,6 +7,9 @@ on:
       - master
     paths:
       - "src/**"
+      - "Dockerfile"
+      - "package.json"
+      - "bun.lock"
   workflow_dispatch:
 
 env:

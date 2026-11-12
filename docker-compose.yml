@@ -1,6 +1,13 @@
 services:
   postgres:
     image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM postgres:16-alpine
+        RUN apk update && apk upgrade --no-cache && \
+            apk add --no-cache --upgrade --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main zlib libxslt krb5-libs su-exec && \
+            rm -f /usr/local/bin/gosu && ln -s /sbin/su-exec /usr/local/bin/gosu
     container_name: router-caddy-db
     restart: unless-stopped
     environment:
@@ -19,6 +26,7 @@ services:
 
   router:
     image: ghcr.io/code-memx/router-caddy:latest
+    build: .
     container_name: router-caddy
     restart: unless-stopped
     ports:

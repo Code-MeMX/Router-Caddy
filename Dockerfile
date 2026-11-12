@@ -19,6 +19,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache --upgrade --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main zlib
+
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
