@@ -1,6 +1,6 @@
 {
   "name": "router-caddy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Code Me <licences@code-me.club>",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -35,4 +35,3 @@
     "postcss": "8.5.32"
   }
 }
-
