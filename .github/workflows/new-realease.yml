@@ -200,3 +200,7 @@ jobs:
             **Digest:** `${{ needs.construir-y-publicar.outputs.digest }}`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Desplegar en Coolify
+        run: |
+          curl --fail --request POST '${{ secrets.COOLIFY_WEBHOOK }}' \
+            --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'

@@ -268,7 +268,10 @@ El flujo de GitHub Actions (`.github/workflows/new-realease.yml`) implementa **V
    - `fix:`, `perf:`, `refactor:` u otros → incrementa versión **Patch** (`0.1.1`).
 2. **Actualización y Etiquetado**: Actualiza `package.json`, crea el commit `chore(release): vX.Y.Z [skip ci]` y publica el tag Git `vX.Y.Z`.
 3. **Publicación Multi-Arquitectura (`linux/amd64`, `linux/arm64`) en GHCR**: Etiqueta la imagen con `:latest`, `:vX.Y.Z`, `:X.Y.Z`, `:X.Y` y `:X`, y crea el **GitHub Release** con el changelog automático.
-4. **Scripts locales**:
+4. **Despliegue automático en Coolify**: Como último paso tras publicar el Release, el workflow invoca el webhook de Coolify si están configurados los siguientes **GitHub Secrets** en el repositorio (`Settings → Secrets and variables → Actions`):
+   - `COOLIFY_WEBHOOK_URL`: URL del webhook de despliegue de Coolify (ej. `https://coolify.midominio.com/api/v1/deploy?uuid=<uuid>&force=false`).
+   - `COOLIFY_TOKEN` *(opcional)*: Token de API de Coolify (`Bearer`) para autenticar la llamada al webhook.
+5. **Scripts locales**:
    - `bun run version:auto` (detecta según commits desde el último tag)
    - `bun run version:patch` / `bun run version:minor` / `bun run version:major`
 
@@ -280,3 +283,4 @@ Desarrollado por **Code Me** (<licencias@code-me.club>).
 
 Copyright © 2026 Code Me.  
 Este proyecto está licenciado bajo la **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consulta el archivo [LICENSE](./LICENSE) para más detalles.
+  
