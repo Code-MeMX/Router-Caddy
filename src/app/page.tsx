@@ -525,33 +525,6 @@ https:// {
               </div>
             )}
           </section>
-
-          {/* Caddyfile config reference */}
-          <section className="rounded-2xl bg-slate-900/90 border border-slate-800 p-6 shadow-xl space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-emerald-400" />
-                Ejemplo Caddyfile
-              </h2>
-              <button
-                onClick={copySnippet}
-                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white"
-              >
-                {copiedCaddy ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" /> Copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" /> Copiar
-                  </>
-                )}
-              </button>
-            </div>
-            <pre className="rounded-xl bg-slate-950 border border-slate-800 p-3.5 text-xs font-mono text-emerald-300 overflow-x-auto">
-              {caddyfileSnippet}
-            </pre>
-          </section>
         </div>
 
         {/* Right Column: Chain List + Recent Validation Logs */}
@@ -715,12 +688,39 @@ https:// {
               </div>
             )}
           </section>
+
+          {/* Caddyfile config reference */}
+          <section className="rounded-2xl bg-slate-900/90 border border-slate-800 p-6 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                Ejemplo Caddyfile
+              </h2>
+              <button
+                onClick={copySnippet}
+                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white"
+              >
+                {copiedCaddy ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" /> Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" /> Copiar
+                  </>
+                )}
+              </button>
+            </div>
+            <pre className="rounded-xl bg-slate-950 border border-slate-800 p-3.5 text-xs font-mono text-emerald-300 overflow-x-auto">
+              {caddyfileSnippet}
+            </pre>
+          </section>
         </div>
       </div>
 
       {/* Footer / Attribution */}
       <footer className="border-t border-slate-800/80 pt-6 text-center text-xs text-slate-500">
-        Copyright © 2026 <span className="text-slate-300 font-medium">Cesar Ayar</span> — Licenciado bajo{" "}
+        Copyright © 2026 <span className="text-slate-300 font-medium">Code Me</span> — Licenciado bajo{" "}
         <span className="text-emerald-400/90 font-mono">GNU AGPL v3.0</span>
       </footer>
     </div>
