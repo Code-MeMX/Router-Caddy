@@ -14,7 +14,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push:
+  construir-y-publicar:
     name: Construir y publicar imagen Docker
     runs-on: ubuntu-latest
     permissions:
@@ -67,9 +67,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  create-release:
+  crear-release:
     name: Crear lanzamiento (Release) en GitHub
-    needs: build-and-push
+    needs: construir-y-publicar
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -106,6 +106,6 @@ jobs:
             docker pull ${{ steps.tag.outputs.image_lower }}:latest
             ```
 
-            **Digest:** `${{ needs.build-and-push.outputs.digest }}`
+            **Digest:** `${{ needs.construir-y-publicar.outputs.digest }}`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
